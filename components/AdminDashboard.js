@@ -13,9 +13,12 @@ function AdminDashboard({ onLogout }) {
         try {
             setLoading(true);
             setError(null);
-            
-            // Load system config
+
+            // Load system config first
             const config = await getSystemConfig();
+            if (!config) {
+                throw new Error('Não foi possível carregar as configurações do sistema');
+            }
             setSystemConfig(config);
 
             // Load teachers
@@ -25,23 +28,12 @@ function AdminDashboard({ onLogout }) {
                 ...doc.data()
             }));
             setTeachers(teachersData);
-            
-            setLoading(false);
+
         } catch (err) {
             console.error('Error loading data:', err);
-            setError('Erro ao carregar dados. Por favor, recarregue a página.');
+            setError(err.message || 'Erro ao carregar dados');
+        } finally {
             setLoading(false);
-        }
-    };
-
-    const handleEditTeacher = async (updatedTeacher) => {
-        try {
-            await db.collection('teachers').doc(updatedTeacher.id).update(updatedTeacher);
-            await loadData();
-            alert('Professor atualizado com sucesso!');
-        } catch (error) {
-            console.error('Error updating teacher:', error);
-            alert('Erro ao atualizar professor. Por favor, tente novamente.');
         }
     };
 
@@ -53,74 +45,8 @@ function AdminDashboard({ onLogout }) {
                 alert('Professor excluído com sucesso!');
             } catch (error) {
                 console.error('Error deleting teacher:', error);
-                alert('Erro ao excluir professor. Por favor, tente novamente.');
+                alert('Erro ao excluir professor');
             }
-        }
-    };
-
-    const generatePDF = async () => {
-        try {
-            const doc = new jsPDF();
-            
-            // Add title
-            doc.setFontSize(18);
-            doc.text('Relatório de Professores', 20, 20);
-            
-            let yPos = 40;
-            const pageHeight = doc.internal.pageSize.height;
-            
-            teachers.forEach((teacher, index) => {
-                // Check if we need a new page
-                if (yPos > pageHeight - 40) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                
-                // Add teacher info
-                doc.setFontSize(12);
-                doc.text(`Professor ${index + 1}:`, 20, yPos);
-                yPos += 10;
-                
-                doc.setFontSize(10);
-                doc.text(`Nome: ${teacher.fullName}`, 30, yPos);
-                yPos += 7;
-                doc.text(`Telefone: ${teacher.phone}`, 30, yPos);
-                yPos += 7;
-                doc.text(`Data de Nascimento: ${teacher.birthDate}`, 30, yPos);
-                yPos += 7;
-                
-                // Add options and sub-options
-                if (teacher.selectedOptions?.length > 0) {
-                    doc.text('Opções Selecionadas:', 30, yPos);
-                    yPos += 7;
-                    
-                    teacher.selectedOptions.forEach(optionId => {
-                        const option = systemConfig.options.find(o => o.id === optionId);
-                        if (option) {
-                            const subOption = option.subOptions?.find(
-                                sub => teacher.selectedSubOptions?.[optionId] === sub.id
-                            );
-                            
-                            let optionText = `- ${option.name}`;
-                            if (subOption) {
-                                optionText += ` → ${subOption.name}`;
-                            }
-                            
-                            doc.text(optionText, 40, yPos);
-                            yPos += 7;
-                        }
-                    });
-                }
-                
-                yPos += 10; // Add space between teachers
-            });
-            
-            // Save the PDF
-            doc.save('relatorio-professores.pdf');
-            
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            alert('Erro ao gerar PDF. Por favor, tente novamente.');
         }
     };
 
@@ -153,19 +79,10 @@ function AdminDashboard({ onLogout }) {
             <div className="dashboard-header">
                 <h2>Painel Administrativo</h2>
                 <div className="dashboard-actions">
-                    <button onClick={generatePDF} className="generate-pdf-button">
-                        Gerar Relatório PDF
-                    </button>
-                    <button 
-                        onClick={() => setShowOptionsConfig(true)} 
-                        className="action-button config-button"
-                    >
+                    <button onClick={() => setShowOptionsConfig(true)} className="action-button config-button">
                         Configurar Opções
                     </button>
-                    <button 
-                        onClick={onLogout} 
-                        className="action-button logout-button"
-                    >
+                    <button onClick={onLogout} className="action-button logout-button">
                         Sair
                     </button>
                 </div>
@@ -175,14 +92,51 @@ function AdminDashboard({ onLogout }) {
                 <div className="teachers-section">
                     <h3>Lista de Professores</h3>
                     {teachers.length === 0 ? (
-                        <div className="no-data">Nenhum professor cadastrado.</div>
+                        <div className="no-data">Nenhum professor cadastrado</div>
                     ) : (
-                        <TeacherList 
-                            teachers={teachers}
-                            systemConfig={systemConfig}
-                            onEdit={handleEditTeacher}
-                            onDelete={handleDeleteTeacher}
-                        />
+                        <div className="teachers-grid">
+                            {teachers.map(teacher => (
+                                <div key={teacher.id} className="teacher-card">
+                                    <div className="teacher-info">
+                                        <h4>{teacher.fullName}</h4>
+                                        <p>Telefone: {teacher.phone}</p>
+                                        <p>Data de Nascimento: {teacher.birthDate}</p>
+                                    </div>
+                                    
+                                    <div className="teacher-options">
+                                        <h5>Opções Selecionadas:</h5>
+                                        {teacher.selectedOptions?.map(optionId => {
+                                            const option = systemConfig?.options?.find(o => o.id === optionId);
+                                            if (!option) return null;
+
+                                            const subOption = option.subOptions?.find(
+                                                sub => teacher.selectedSubOptions?.[optionId] === sub.id
+                                            );
+
+                                            return (
+                                                <div key={optionId} className="option-item">
+                                                    <span>{option.name}</span>
+                                                    {subOption && (
+                                                        <span className="sub-option">
+                                                            → {subOption.name}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="teacher-actions">
+                                        <button 
+                                            onClick={() => handleDeleteTeacher(teacher.id)}
+                                            className="delete-button"
+                                        >
+                                            Excluir
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
@@ -191,7 +145,7 @@ function AdminDashboard({ onLogout }) {
                 <div className="modal-overlay" onClick={() => setShowOptionsConfig(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <AdminOptionsConfig 
-                            systemConfig={systemConfig} 
+                            systemConfig={systemConfig}
                             onUpdate={handleConfigUpdate}
                         />
                     </div>
