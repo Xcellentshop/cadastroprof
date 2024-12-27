@@ -4,7 +4,7 @@ function TeacherEdit({ teacher, systemConfig, onSave, onCancel }) {
         phone: teacher.phone.replace(/\D/g, ''),
         birthDate: teacher.birthDate,
         selectedOptions: teacher.selectedOptions || [],
-        selectedSubOptions: teacher.selectedSubOptions || {}
+        selectedSubOptions: teacher.selectedSubOptions || {} // Changed from array to object for single selection
     });
 
     const handleInputChange = (e) => {
@@ -36,7 +36,7 @@ function TeacherEdit({ teacher, systemConfig, onSave, onCancel }) {
             let newSelectedSubOptions = { ...prev.selectedSubOptions };
 
             if (isSelected) {
-                // Remove option and its sub-options
+                // Remove option and its sub-option
                 newSelectedOptions = prev.selectedOptions.filter(id => id !== optionId);
                 delete newSelectedSubOptions[optionId];
             } else {
@@ -57,20 +57,13 @@ function TeacherEdit({ teacher, systemConfig, onSave, onCancel }) {
     };
 
     const handleSubOptionSelect = (optionId, subOptionId) => {
-        setFormData(prev => {
-            const currentSubOptions = prev.selectedSubOptions[optionId] || [];
-            const isSelected = currentSubOptions.includes(subOptionId);
-
-            return {
-                ...prev,
-                selectedSubOptions: {
-                    ...prev.selectedSubOptions,
-                    [optionId]: isSelected
-                        ? currentSubOptions.filter(id => id !== subOptionId)
-                        : [...currentSubOptions, subOptionId]
-                }
-            };
-        });
+        setFormData(prev => ({
+            ...prev,
+            selectedSubOptions: {
+                ...prev.selectedSubOptions,
+                [optionId]: subOptionId // Store single subOptionId instead of array
+            }
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -87,18 +80,17 @@ function TeacherEdit({ teacher, systemConfig, onSave, onCancel }) {
                 return;
             }
 
-            // Validate that each selected option has at least one sub-option selected (if available)
+            // Validate that each selected option with sub-options has one selected
             const invalidSelection = formData.selectedOptions.some(optionId => {
                 const option = systemConfig.options.find(o => o.id === optionId);
                 if (option.subOptions.length > 0) {
-                    const selectedSubOptions = formData.selectedSubOptions[optionId] || [];
-                    return selectedSubOptions.length === 0;
+                    return !formData.selectedSubOptions[optionId];
                 }
                 return false;
             });
 
             if (invalidSelection) {
-                alert('Por favor, selecione pelo menos uma sub-opção para cada opção selecionada');
+                alert('Por favor, selecione uma sub-opção para cada opção selecionada');
                 return;
             }
 
@@ -181,10 +173,11 @@ function TeacherEdit({ teacher, systemConfig, onSave, onCancel }) {
                                 {formData.selectedOptions.includes(option.id) && option.subOptions.length > 0 && (
                                     <div className="sub-options-container">
                                         {option.subOptions.map(subOption => (
-                                            <label key={subOption.id} className="checkbox-label sub-option">
+                                            <label key={subOption.id} className="radio-label sub-option">
                                                 <input
-                                                    type="checkbox"
-                                                    checked={(formData.selectedSubOptions[option.id] || []).includes(subOption.id)}
+                                                    type="radio"
+                                                    name={`subOption-${option.id}`}
+                                                    checked={formData.selectedSubOptions[option.id] === subOption.id}
                                                     onChange={() => handleSubOptionSelect(option.id, subOption.id)}
                                                 />
                                                 {subOption.name}
