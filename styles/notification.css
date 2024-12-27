@@ -1,0 +1,40 @@
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 8px;
+    background-color: #48bb78;
+    color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.5s ease-out;
+    z-index: 1000;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.history-log {
+    background-color: #f7fafc;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.history-item {
+    padding: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.history-date {
+    color: #718096;
+    font-size: 0.9rem;
+}

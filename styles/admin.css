@@ -1,0 +1,92 @@
+.admin-container {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin: 20px auto;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.action-button {
+    padding: 8px 16px;
+    background-color: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.action-button:hover {
+    background-color: #3182ce;
+}
+
+.action-button.bg-red-500 {
+    background-color: #f56565;
+}
+
+.action-button.bg-red-500:hover {
+    background-color: #e53e3e;
+}
+
+.action-button.bg-gray-500 {
+    background-color: #718096;
+}
+
+.action-button.bg-gray-500:hover {
+    background-color: #4a5568;
+}
+
+.teacher-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.teacher-table th,
+.teacher-table td {
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    text-align: left;
+}
+
+.teacher-table th {
+    background-color: #f7fafc;
+    font-weight: 600;
+}
+
+.chart-container {
+    max-width: 500px;
+    margin: 20px auto;
+}
+
+.admin-config-panel {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.options-list {
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.option-item {
+    background-color: #f7fafc;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
