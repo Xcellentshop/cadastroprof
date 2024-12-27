@@ -75,9 +75,27 @@ function TeacherDashboard({ teacher, onLogout }) {
 
                 return {
                     ...prev,
-                    selectedOptions: currentOptions
+                    selectedOptions: currentOptions,
+                    selectedSubOptions: {
+                        ...prev.selectedSubOptions,
+                        [optionId]: null
+                    }
                 };
             });
+        } catch (error) {
+            reportError(error);
+        }
+    };
+
+    const handleSubOptionSelect = (optionId, subOptionId) => {
+        try {
+            setFormData(prev => ({
+                ...prev,
+                selectedSubOptions: {
+                    ...prev.selectedSubOptions,
+                    [optionId]: subOptionId
+                }
+            }));
         } catch (error) {
             reportError(error);
         }
@@ -87,11 +105,27 @@ function TeacherDashboard({ teacher, onLogout }) {
         try {
             e.preventDefault();
 
+            const invalidSelection = formData.selectedOptions.some(optionId => {
+                const option = systemConfig.options.find(o => o.id === optionId);
+                if (option?.subOptions?.length > 0) {
+                    return !formData.selectedSubOptions[optionId];
+                }
+                return false;
+            });
+
+            if (invalidSelection) {
+                alert('Por favor, selecione uma sub-opção para cada opção selecionada');
+                return;
+            }
+
             const changes = {};
             if (formData.fullName !== teacher.fullName) changes['Nome Completo'] = formData.fullName;
             if (unformatPhone(formData.phone) !== unformatPhone(teacher.phone)) changes['Telefone'] = formatPhone(formData.phone);
             if (JSON.stringify(formData.selectedOptions) !== JSON.stringify(teacher.selectedOptions)) {
                 changes['Opções'] = formData.selectedOptions;
+            }
+            if (JSON.stringify(formData.selectedSubOptions) !== JSON.stringify(teacher.selectedSubOptions)) {
+                changes['Sub-opções'] = formData.selectedSubOptions;
             }
 
             if (Object.keys(changes).length === 0) {
@@ -219,6 +253,21 @@ function TeacherDashboard({ teacher, onLogout }) {
                                 data-name={`option-${option.id}`}
                             >
                                 {option.name}
+                                {option.subOptions?.length > 0 && (
+                                    <div className="sub-options-container">
+                                        {option.subOptions.map(subOption => (
+                                            <label key={subOption.id} className="radio-label sub-option">
+                                                <input
+                                                    type="radio"
+                                                    name={`subOption-${option.id}`}
+                                                    checked={formData.selectedSubOptions[option.id] === subOption.id}
+                                                    onChange={() => handleSubOptionSelect(option.id, subOption.id)}
+                                                />
+                                                {subOption.name}
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -246,7 +295,9 @@ function TeacherDashboard({ teacher, onLogout }) {
                                     <div key={key}>
                                         {key === 'Opções' 
                                             ? `Opções: ${value.map(id => getOptionName(id)).join(', ')}`
-                                            : `${key}: ${value}`
+                                            : key === 'Sub-opções'
+                                                ? `Sub-opções: ${Object.entries(value).map(([optionId, subOptionId]) => `${getOptionName(optionId)} → ${systemConfig.options.find(o => o.id === optionId).subOptions.find(s => s.id === subOptionId).name}`).join(', ')}`
+                                                : `${key}: ${value}`
                                         }
                                     </div>
                                 ))}

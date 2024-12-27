@@ -1,110 +1,185 @@
 function AdminDashboard({ onLogout }) {
     const [teachers, setTeachers] = React.useState([]);
-    const [showOptionsConfig, setShowOptionsConfig] = React.useState(false);
     const [systemConfig, setSystemConfig] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
+    const [error, setError] = React.useState(null);
+    const [showOptionsConfig, setShowOptionsConfig] = React.useState(false);
 
     React.useEffect(() => {
-        loadTeachers();
-        loadSystemConfig();
+        loadData();
     }, []);
 
-    const loadTeachers = () => {
+    const loadData = async () => {
         try {
-            const unsubscribe = db.collection('teachers')
-                .orderBy('createdAt', 'desc')
-                .onSnapshot(snapshot => {
-                    const teacherData = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-                    setTeachers(teacherData);
-                });
-
-            return () => unsubscribe();
-        } catch (error) {
-            reportError(error);
-        }
-    };
-
-    const loadSystemConfig = async () => {
-        try {
+            setLoading(true);
+            
+            // Load system config
             const config = await getSystemConfig();
             setSystemConfig(config);
-        } catch (error) {
-            reportError(error);
+
+            // Load teachers
+            const teachersRef = db.collection('teachers');
+            const snapshot = await teachersRef.get();
+            const teachersData = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setTeachers(teachersData);
+            
+            setLoading(false);
+        } catch (err) {
+            console.error('Error loading data:', err);
+            setError('Erro ao carregar dados. Por favor, recarregue a página.');
+            setLoading(false);
         }
     };
 
-    const generatePDF = () => {
+    const handleEditTeacher = async (updatedTeacher) => {
         try {
-            const { jsPDF } = window.jspdf;
+            await db.collection('teachers').doc(updatedTeacher.id).update(updatedTeacher);
+            loadData(); // Reload data after update
+            alert('Professor atualizado com sucesso!');
+        } catch (error) {
+            console.error('Error updating teacher:', error);
+            alert('Erro ao atualizar professor. Por favor, tente novamente.');
+        }
+    };
+
+    const handleDeleteTeacher = async (teacherId) => {
+        if (window.confirm('Tem certeza que deseja excluir este professor?')) {
+            try {
+                await db.collection('teachers').doc(teacherId).delete();
+                loadData(); // Reload data after deletion
+                alert('Professor excluído com sucesso!');
+            } catch (error) {
+                console.error('Error deleting teacher:', error);
+                alert('Erro ao excluir professor. Por favor, tente novamente.');
+            }
+        }
+    };
+
+    const generatePDF = async () => {
+        try {
             const doc = new jsPDF();
             
-            doc.text('Relatório de Professores - Gotas Vivas', 20, 20);
+            // Add title
+            doc.setFontSize(18);
+            doc.text('Relatório de Professores', 20, 20);
             
             let yPos = 40;
+            const pageHeight = doc.internal.pageSize.height;
+            
             teachers.forEach((teacher, index) => {
-                doc.text(`${index + 1}. ${teacher.fullName}`, 20, yPos);
-                doc.text(`Telefone: ${teacher.phone}`, 30, yPos + 7);
-                doc.text(`Data de Nascimento: ${formatDate(teacher.birthDate)}`, 30, yPos + 14);
-                doc.text('Opções Selecionadas:', 30, yPos + 21);
-                teacher.selectedOptions.forEach((optionId, idx) => {
-                    const optionName = systemConfig?.options.find(opt => opt.id === optionId)?.name || '';
-                    doc.text(`- ${optionName}`, 40, yPos + 28 + (idx * 7));
-                });
-                yPos += 50;
-
-                if (yPos > 250) {
+                // Check if we need a new page
+                if (yPos > pageHeight - 40) {
                     doc.addPage();
                     yPos = 20;
                 }
+                
+                // Add teacher info
+                doc.setFontSize(12);
+                doc.text(`Professor ${index + 1}:`, 20, yPos);
+                yPos += 10;
+                
+                doc.setFontSize(10);
+                doc.text(`Nome: ${teacher.fullName}`, 30, yPos);
+                yPos += 7;
+                doc.text(`Telefone: ${teacher.phone}`, 30, yPos);
+                yPos += 7;
+                doc.text(`Data de Nascimento: ${teacher.birthDate}`, 30, yPos);
+                yPos += 7;
+                
+                // Add options and sub-options
+                if (teacher.selectedOptions?.length > 0) {
+                    doc.text('Opções Selecionadas:', 30, yPos);
+                    yPos += 7;
+                    
+                    teacher.selectedOptions.forEach(optionId => {
+                        const option = systemConfig.options.find(o => o.id === optionId);
+                        if (option) {
+                            const subOption = option.subOptions?.find(
+                                sub => teacher.selectedSubOptions?.[optionId] === sub.id
+                            );
+                            
+                            let optionText = `- ${option.name}`;
+                            if (subOption) {
+                                optionText += ` → ${subOption.name}`;
+                            }
+                            
+                            doc.text(optionText, 40, yPos);
+                            yPos += 7;
+                        }
+                    });
+                }
+                
+                yPos += 10; // Add space between teachers
             });
-
+            
+            // Save the PDF
             doc.save('relatorio-professores.pdf');
+            
         } catch (error) {
-            reportError(error);
-            alert('Erro ao gerar PDF');
+            console.error('Error generating PDF:', error);
+            alert('Erro ao gerar PDF. Por favor, tente novamente.');
         }
     };
 
     const handleOptionsConfigClose = () => {
         setShowOptionsConfig(false);
-        loadSystemConfig(); // Reload config after changes
+        loadData(); // Reload config after changes
     };
 
-    if (!systemConfig) {
-        return <div>Carregando...</div>;
+    if (loading) {
+        return <div className="loading">Carregando...</div>;
+    }
+
+    if (error) {
+        return <div className="error">{error}</div>;
     }
 
     return (
-        <div className="admin-container" data-name="admin-dashboard">
-            <div className="admin-header" data-name="admin-header">
+        <div className="admin-dashboard">
+            <div className="dashboard-header">
                 <h2>Painel Administrativo</h2>
-                <div className="admin-actions" data-name="admin-actions">
-                    <button 
-                        onClick={() => setShowOptionsConfig(true)} 
-                        className="action-button bg-green-500 hover:bg-green-600"
-                        data-name="config-button"
-                    >
-                        Configurar Opções
-                    </button>
-                    <button 
-                        onClick={generatePDF} 
-                        className="action-button bg-blue-500 hover:bg-blue-600" 
-                        data-name="pdf-button"
-                    >
-                        Gerar PDF
-                    </button>
-                    <button 
-                        onClick={onLogout} 
-                        className="action-button bg-gray-500 hover:bg-gray-600" 
-                        data-name="logout-button"
-                    >
-                        Sair
-                    </button>
+                <button onClick={generatePDF} className="generate-pdf-button">
+                    Gerar Relatório PDF
+                </button>
+                <button 
+                    onClick={() => setShowOptionsConfig(true)} 
+                    className="action-button bg-green-500 hover:bg-green-600"
+                    data-name="config-button"
+                >
+                    Configurar Opções
+                </button>
+                <button 
+                    onClick={onLogout} 
+                    className="action-button bg-gray-500 hover:bg-gray-600" 
+                    data-name="logout-button"
+                >
+                    Sair
+                </button>
+            </div>
+
+            <div className="dashboard-content">
+                <div className="config-section">
+                    <h3>Configurações do Sistema</h3>
+                    <AdminOptionsConfig 
+                        systemConfig={systemConfig} 
+                        onUpdate={() => loadData()}
+                    />
+                </div>
+
+                <div className="teachers-section">
+                    <h3>Lista de Professores</h3>
+                    <TeacherList 
+                        teachers={teachers}
+                        systemConfig={systemConfig}
+                        onEdit={handleEditTeacher}
+                        onDelete={handleDeleteTeacher}
+                    />
                 </div>
             </div>
-            
+
             {showOptionsConfig && (
                 <div className="modal-overlay">
                     <div className="modal-content">
@@ -112,9 +187,6 @@ function AdminDashboard({ onLogout }) {
                     </div>
                 </div>
             )}
-            
-            <TeacherList teachers={teachers} systemConfig={systemConfig} />
-            <StatsChart teachers={teachers} />
         </div>
     );
 }
