@@ -1,9 +1,13 @@
 function AdminOptionsConfig({ onClose }) {
-    const [config, setConfig] = React.useState({ maxOptions: 2, options: [] });
+    const [config, setConfig] = React.useState({
+        maxOptions: 2,
+        options: []
+    });
     const [newOption, setNewOption] = React.useState('');
     const [newSubOption, setNewSubOption] = React.useState('');
     const [loading, setLoading] = React.useState(true);
     const [editingOption, setEditingOption] = React.useState(null);
+    const [editingSubOption, setEditingSubOption] = React.useState(null);
     const [selectedOption, setSelectedOption] = React.useState(null);
 
     React.useEffect(() => {
@@ -14,7 +18,15 @@ function AdminOptionsConfig({ onClose }) {
         try {
             setLoading(true);
             const systemConfig = await getSystemConfig();
-            setConfig(systemConfig);
+            // Ensure all options have a subOptions array
+            const updatedOptions = systemConfig.options.map(option => ({
+                ...option,
+                subOptions: option.subOptions || []
+            }));
+            setConfig({
+                ...systemConfig,
+                options: updatedOptions
+            });
         } catch (error) {
             reportError(error);
             alert('Erro ao carregar configurações');
@@ -37,6 +49,14 @@ function AdminOptionsConfig({ onClose }) {
 
             if (config.options.some(option => !option.name.trim())) {
                 alert('Todas as opções devem ter um nome');
+                return;
+            }
+
+            // Validate sub-options
+            if (config.options.some(option => 
+                option.subOptions && option.subOptions.some(subOption => !subOption.name.trim())
+            )) {
+                alert('Todas as sub-opções devem ter um nome');
                 return;
             }
 
@@ -63,7 +83,11 @@ function AdminOptionsConfig({ onClose }) {
         const newId = Math.max(0, ...config.options.map(o => o.id)) + 1;
         setConfig(prev => ({
             ...prev,
-            options: [...prev.options, { id: newId, name: newOption.trim(), subOptions: [] }]
+            options: [...prev.options, { 
+                id: newId, 
+                name: newOption.trim(),
+                subOptions: []
+            }]
         }));
         setNewOption('');
     };
@@ -77,19 +101,24 @@ function AdminOptionsConfig({ onClose }) {
         const parentOption = config.options.find(o => o.id === optionId);
         if (!parentOption) return;
 
-        if (parentOption.subOptions.some(so => so.name.toLowerCase() === newSubOption.trim().toLowerCase())) {
+        if (parentOption.subOptions && parentOption.subOptions.some(
+            so => so.name.toLowerCase() === newSubOption.trim().toLowerCase()
+        )) {
             alert('Já existe uma sub-opção com este nome');
             return;
         }
 
-        const newSubId = optionId * 10 + (parentOption.subOptions.length + 1);
+        const newSubId = optionId * 10 + ((parentOption.subOptions?.length || 0) + 1);
         setConfig(prev => ({
             ...prev,
             options: prev.options.map(o => 
                 o.id === optionId 
                     ? {
                         ...o,
-                        subOptions: [...o.subOptions, { id: newSubId, name: newSubOption.trim() }]
+                        subOptions: [...(o.subOptions || []), { 
+                            id: newSubId, 
+                            name: newSubOption.trim() 
+                        }]
                     }
                     : o
             )
@@ -107,6 +136,9 @@ function AdminOptionsConfig({ onClose }) {
             ...prev,
             options: prev.options.filter(o => o.id !== id)
         }));
+        if (selectedOption === id) {
+            setSelectedOption(null);
+        }
     };
 
     const handleRemoveSubOption = (optionId, subOptionId) => {
@@ -116,7 +148,7 @@ function AdminOptionsConfig({ onClose }) {
                 o.id === optionId
                     ? {
                         ...o,
-                        subOptions: o.subOptions.filter(so => so.id !== subOptionId)
+                        subOptions: (o.subOptions || []).filter(so => so.id !== subOptionId)
                     }
                     : o
             )
@@ -140,6 +172,7 @@ function AdminOptionsConfig({ onClose }) {
                 o.id === id ? { ...o, name: newName.trim() } : o
             )
         }));
+        setEditingOption(null);
     };
 
     const handleUpdateSubOption = (optionId, subOptionId, newName) => {
@@ -151,7 +184,9 @@ function AdminOptionsConfig({ onClose }) {
         const parentOption = config.options.find(o => o.id === optionId);
         if (!parentOption) return;
 
-        if (parentOption.subOptions.some(so => so.id !== subOptionId && so.name.toLowerCase() === newName.trim().toLowerCase())) {
+        if (parentOption.subOptions && parentOption.subOptions.some(
+            so => so.id !== subOptionId && so.name.toLowerCase() === newName.trim().toLowerCase()
+        )) {
             alert('Já existe uma sub-opção com este nome');
             return;
         }
@@ -162,7 +197,7 @@ function AdminOptionsConfig({ onClose }) {
                 o.id === optionId
                     ? {
                         ...o,
-                        subOptions: o.subOptions.map(so =>
+                        subOptions: (o.subOptions || []).map(so =>
                             so.id === subOptionId
                                 ? { ...so, name: newName.trim() }
                                 : so
@@ -171,11 +206,12 @@ function AdminOptionsConfig({ onClose }) {
                     : o
             )
         }));
+        setEditingSubOption(null);
     };
 
     const handleMaxOptionsChange = (value) => {
         const newValue = parseInt(value);
-        if (isNaN(newValue)) return;
+        if (isNaN(newValue) || newValue < 1) return;
         setConfig(prev => ({ ...prev, maxOptions: newValue }));
     };
 
@@ -241,19 +277,31 @@ function AdminOptionsConfig({ onClose }) {
                                             onChange={(e) => setNewSubOption(e.target.value)}
                                             placeholder="Nova sub-opção..."
                                         />
-                                        <button onClick={() => handleAddSubOption(option.id)}>Adicionar Sub-opção</button>
+                                        <button onClick={() => handleAddSubOption(option.id)}>
+                                            Adicionar Sub-opção
+                                        </button>
                                     </div>
                                     <div className="sub-options-list">
-                                        {option.subOptions.map(subOption => (
+                                        {(option.subOptions || []).map(subOption => (
                                             <div key={subOption.id} className="sub-option-item">
-                                                <input
-                                                    type="text"
-                                                    value={subOption.name}
-                                                    onChange={(e) => handleUpdateSubOption(option.id, subOption.id, e.target.value)}
-                                                />
-                                                <button onClick={() => handleRemoveSubOption(option.id, subOption.id)}>
-                                                    Remover
-                                                </button>
+                                                {editingSubOption === subOption.id ? (
+                                                    <input
+                                                        type="text"
+                                                        value={subOption.name}
+                                                        onChange={(e) => handleUpdateSubOption(option.id, subOption.id, e.target.value)}
+                                                        onBlur={() => setEditingSubOption(null)}
+                                                        autoFocus
+                                                    />
+                                                ) : (
+                                                    <>
+                                                        <span onClick={() => setEditingSubOption(subOption.id)}>
+                                                            {subOption.name}
+                                                        </span>
+                                                        <button onClick={() => handleRemoveSubOption(option.id, subOption.id)}>
+                                                            Remover
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
