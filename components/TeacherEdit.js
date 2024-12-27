@@ -1,27 +1,10 @@
-function TeacherEdit({ teacher, onSave, onCancel }) {
+function TeacherEdit({ teacher, systemConfig, onSave, onCancel }) {
     const [formData, setFormData] = React.useState({
         fullName: teacher.fullName,
         phone: teacher.phone.replace(/\D/g, ''),
         birthDate: teacher.birthDate,
-        selectedOptions: teacher.selectedOptions
+        selectedOptions: teacher.selectedOptions || []
     });
-    const [systemConfig, setSystemConfig] = React.useState({ maxOptions: 2, options: [] });
-    const [loading, setLoading] = React.useState(true);
-
-    React.useEffect(() => {
-        loadSystemConfig();
-    }, []);
-
-    const loadSystemConfig = async () => {
-        try {
-            const config = await getSystemConfig();
-            setSystemConfig(config);
-            setLoading(false);
-        } catch (error) {
-            reportError(error);
-            setLoading(false);
-        }
-    };
 
     const handleInputChange = (e) => {
         try {
@@ -56,6 +39,7 @@ function TeacherEdit({ teacher, onSave, onCancel }) {
                         currentOptions.push(optionId);
                     } else {
                         alert(`Por favor, desmarque uma das opções para selecionar uma nova. Máximo permitido: ${systemConfig.maxOptions}`);
+                        return prev;
                     }
                 } else {
                     currentOptions.splice(index, 1);
@@ -87,7 +71,8 @@ function TeacherEdit({ teacher, onSave, onCancel }) {
 
             await db.collection('teachers').doc(teacher.id).update({
                 ...formData,
-                phone: formatPhone(formData.phone)
+                phone: formatPhone(formData.phone),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
             onSave();
@@ -97,73 +82,89 @@ function TeacherEdit({ teacher, onSave, onCancel }) {
         }
     };
 
-    if (loading) {
-        return <div>Carregando...</div>;
-    }
-
     return (
-        <div className="edit-form-container" data-name="teacher-edit-form">
+        <div className="edit-form-container p-6 bg-white rounded-lg shadow" data-name="teacher-edit-form">
+            <h3 className="text-xl font-bold mb-4">Editar Professor</h3>
             <form onSubmit={handleSubmit}>
-                <div className="input-group" data-name="fullname-group">
-                    <label className="input-label">Nome Completo</label>
+                <div className="input-group mb-4" data-name="fullname-group">
+                    <label className="input-label block mb-2">Nome Completo</label>
                     <input
                         type="text"
                         name="fullName"
                         value={formData.fullName}
                         onChange={handleInputChange}
-                        className="input-field"
+                        className="input-field w-full p-2 border rounded"
                         required
                     />
                 </div>
 
-                <div className="input-group" data-name="phone-group">
-                    <label className="input-label">Telefone (DDD + Número)</label>
+                <div className="input-group mb-4" data-name="phone-group">
+                    <label className="input-label block mb-2">Telefone (DDD + Número)</label>
                     <input
                         type="tel"
                         name="phone"
                         value={formatPhone(formData.phone)}
                         onChange={handleInputChange}
-                        className="input-field"
+                        className="input-field w-full p-2 border rounded"
                         placeholder="(45)99999-9999"
                         required
                     />
                 </div>
 
-                <div className="input-group" data-name="birthdate-group">
-                    <label className="input-label">Data de Nascimento</label>
+                <div className="input-group mb-4" data-name="birthdate-group">
+                    <label className="input-label block mb-2">Data de Nascimento</label>
                     <input
                         type="date"
                         name="birthDate"
                         value={formData.birthDate}
                         onChange={handleInputChange}
-                        className="input-field"
+                        className="input-field w-full p-2 border rounded"
                         required
                     />
                 </div>
 
-                <div className="options-grid" data-name="options-grid">
-                    {systemConfig.options.map(option => (
-                        <div
-                            key={option.id}
-                            className={`option-card ${
-                                formData.selectedOptions.includes(option.id) ? 'selected' : ''
-                            } ${
-                                formData.selectedOptions.length === systemConfig.maxOptions && !formData.selectedOptions.includes(option.id) ? 'disabled' : ''
-                            }`}
-                            onClick={() => handleOptionSelect(option.id)}
-                            data-name={`option-${option.id}`}
-                        >
-                            {option.name}
-                        </div>
-                    ))}
+                <div className="options-section mb-6">
+                    <label className="input-label block mb-2">
+                        Opções Selecionadas ({formData.selectedOptions.length} de {systemConfig.maxOptions})
+                    </label>
+                    <div className="options-grid grid grid-cols-2 gap-4" data-name="options-grid">
+                        {systemConfig.options.map(option => (
+                            <div
+                                key={option.id}
+                                className={`option-card p-3 border rounded cursor-pointer transition-colors ${
+                                    formData.selectedOptions.includes(option.id) 
+                                        ? 'bg-blue-100 border-blue-500' 
+                                        : 'bg-white hover:bg-gray-50'
+                                } ${
+                                    formData.selectedOptions.length >= systemConfig.maxOptions && 
+                                    !formData.selectedOptions.includes(option.id) 
+                                        ? 'opacity-50 cursor-not-allowed' 
+                                        : ''
+                                }`}
+                                onClick={() => handleOptionSelect(option.id)}
+                                data-name={`option-${option.id}`}
+                            >
+                                {option.name}
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
-                <div className="button-group">
-                    <button type="submit" className="submit-button" data-name="save-button">
-                        Salvar
-                    </button>
-                    <button type="button" onClick={onCancel} className="cancel-button" data-name="cancel-button">
+                <div className="button-group flex justify-end gap-4">
+                    <button 
+                        type="button" 
+                        onClick={onCancel} 
+                        className="cancel-button px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600" 
+                        data-name="cancel-button"
+                    >
                         Cancelar
+                    </button>
+                    <button 
+                        type="submit" 
+                        className="submit-button px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" 
+                        data-name="save-button"
+                    >
+                        Salvar Alterações
                     </button>
                 </div>
             </form>

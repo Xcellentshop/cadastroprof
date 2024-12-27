@@ -4,6 +4,7 @@
     border-radius: 15px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     margin: 20px auto;
+    max-width: 1200px;
 }
 
 .admin-header {
@@ -11,6 +12,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .admin-actions {
@@ -20,16 +23,16 @@
 
 .action-button {
     padding: 8px 16px;
-    background-color: #4299e1;
     color: white;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.2s;
+    font-weight: 500;
 }
 
 .action-button:hover {
-    background-color: #3182ce;
+    transform: translateY(-1px);
 }
 
 .action-button.bg-red-500 {
@@ -50,20 +53,26 @@
 
 .teacher-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin-top: 20px;
 }
 
 .teacher-table th,
 .teacher-table td {
     padding: 12px;
-    border: 1px solid #e2e8f0;
     text-align: left;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .teacher-table th {
     background-color: #f7fafc;
     font-weight: 600;
+    color: #4a5568;
+}
+
+.teacher-table tr:hover td {
+    background-color: #f7fafc;
 }
 
 .chart-container {
@@ -86,7 +95,50 @@
 
 .option-item {
     background-color: #f7fafc;
-    padding: 10px;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+}
+
+.option-item:hover {
+    background-color: #edf2f7;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.edit-button {
+    padding: 6px 12px;
     border-radius: 4px;
-    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.edit-button:hover {
+    transform: translateY(-1px);
 }

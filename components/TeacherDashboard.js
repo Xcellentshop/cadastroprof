@@ -1,13 +1,21 @@
 function TeacherDashboard({ teacher, onLogout }) {
     const [formData, setFormData] = React.useState(teacher);
     const [history, setHistory] = React.useState([]);
+    const [systemConfig, setSystemConfig] = React.useState(null);
 
-    const options = [
-        { id: 1, name: 'EBD (Domingo de Manhã)' },
-        { id: 2, name: 'EBQ (Quarta Feira)' },
-        { id: 3, name: 'CULTO KIDS (Domingo a Noite)' },
-        { id: 4, name: 'EBQ (Quinta Feira)' }
-    ];
+    React.useEffect(() => {
+        fetchHistory();
+        loadSystemConfig();
+    }, [teacher.id]);
+
+    const loadSystemConfig = async () => {
+        try {
+            const config = await getSystemConfig();
+            setSystemConfig(config);
+        } catch (error) {
+            reportError(error);
+        }
+    };
 
     const fetchHistory = async () => {
         try {
@@ -26,10 +34,6 @@ function TeacherDashboard({ teacher, onLogout }) {
             reportError(error);
         }
     };
-
-    React.useEffect(() => {
-        fetchHistory();
-    }, [teacher.id]);
 
     const handleInputChange = (e) => {
         try {
@@ -60,8 +64,10 @@ function TeacherDashboard({ teacher, onLogout }) {
                 const index = currentOptions.indexOf(optionId);
 
                 if (index === -1) {
-                    if (currentOptions.length < 2) {
+                    if (currentOptions.length < (systemConfig?.maxOptions || 2)) {
                         currentOptions.push(optionId);
+                    } else {
+                        alert(`Por favor, desmarque uma das opções para selecionar uma nova. Máximo permitido: ${systemConfig?.maxOptions || 2}`);
                     }
                 } else {
                     currentOptions.splice(index, 1);
@@ -80,22 +86,12 @@ function TeacherDashboard({ teacher, onLogout }) {
     const handleUpdate = async (e) => {
         try {
             e.preventDefault();
-            
-            if (formData.phone.length !== 11) {
-                alert('Por favor, insira um número de telefone válido com DDD (11 dígitos)');
-                return;
-            }
-
-            if (formData.selectedOptions.length !== 2) {
-                alert('Por favor, selecione exatamente duas opções.');
-                return;
-            }
 
             const changes = {};
-            if (formData.fullName !== teacher.fullName) changes.fullName = formData.fullName;
-            if (unformatPhone(formData.phone) !== unformatPhone(teacher.phone)) changes.phone = formatPhone(formData.phone);
+            if (formData.fullName !== teacher.fullName) changes['Nome Completo'] = formData.fullName;
+            if (unformatPhone(formData.phone) !== unformatPhone(teacher.phone)) changes['Telefone'] = formatPhone(formData.phone);
             if (JSON.stringify(formData.selectedOptions) !== JSON.stringify(teacher.selectedOptions)) {
-                changes.selectedOptions = formData.selectedOptions;
+                changes['Opções'] = formData.selectedOptions;
             }
 
             if (Object.keys(changes).length === 0) {
@@ -128,13 +124,28 @@ function TeacherDashboard({ teacher, onLogout }) {
         }
     };
 
+    if (!systemConfig) {
+        return <div>Carregando...</div>;
+    }
+
+    const getOptionName = (optionId) => {
+        const option = systemConfig.options.find(opt => opt.id === optionId);
+        return option ? option.name : '';
+    };
+
     return (
         <div className="form-container" data-name="teacher-dashboard">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Meu Cadastro</h2>
-                <button onClick={onLogout} className="action-button" data-name="logout-button">
-                    Sair
-                </button>
+                <div className="flex gap-2">
+                    <button 
+                        onClick={onLogout} 
+                        className="action-button bg-blue-500 hover:bg-blue-600" 
+                        data-name="logout-button"
+                    >
+                        Sair
+                    </button>
+                </div>
             </div>
 
             <form onSubmit={handleUpdate}>
@@ -158,47 +169,53 @@ function TeacherDashboard({ teacher, onLogout }) {
                         value={formatPhone(formData.phone)}
                         onChange={handleInputChange}
                         className="input-field"
-                        placeholder="(XX)XXXXX-XXXX"
+                        placeholder="(45)99999-9999"
                         required
                     />
                 </div>
 
-                <div className="options-grid" data-name="options-grid">
-                    {options.map(option => (
-                        <div
-                            key={option.id}
-                            className={`option-card ${
-                                formData.selectedOptions.includes(option.id) ? 'selected' : ''
-                            } ${
-                                formData.selectedOptions.length === 2 && !formData.selectedOptions.includes(option.id) ? 'disabled' : ''
-                            }`}
-                            onClick={() => handleOptionSelect(option.id)}
-                            data-name={`option-${option.id}`}
-                        >
-                            {option.name}
-                        </div>
-                    ))}
+                <div className="options-section mt-4">
+                    <label className="input-label block mb-2">
+                        Opções Selecionadas ({formData.selectedOptions.length} de {systemConfig.maxOptions})
+                    </label>
+                    <div className="options-grid" data-name="options-grid">
+                        {systemConfig.options.map(option => (
+                            <div
+                                key={option.id}
+                                className={`option-card ${
+                                    formData.selectedOptions.includes(option.id) ? 'selected' : ''
+                                } ${
+                                    formData.selectedOptions.length >= systemConfig.maxOptions && 
+                                    !formData.selectedOptions.includes(option.id) ? 'disabled' : ''
+                                }`}
+                                onClick={() => handleOptionSelect(option.id)}
+                                data-name={`option-${option.id}`}
+                            >
+                                {option.name}
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
-                <button type="submit" className="submit-button">
+                <button type="submit" className="submit-button mt-4">
                     Atualizar Dados
                 </button>
             </form>
 
-            <div className="history-log" data-name="history-log">
+            <div className="history-log mt-6" data-name="history-log">
                 <h3 className="font-bold mb-2">Histórico de Alterações</h3>
                 {history.length === 0 ? (
                     <p>Nenhuma alteração registrada</p>
                 ) : (
                     history.map((item, index) => (
-                        <div key={index} className="history-item">
-                            <div className="history-date">
+                        <div key={index} className="history-item bg-gray-50 p-3 rounded mb-2">
+                            <div className="history-date text-sm text-gray-600 mb-1">
                                 {item.timestamp?.toDate().toLocaleString('pt-BR')}
                             </div>
                             <div>
                                 {Object.entries(item.changes).map(([key, value]) => (
                                     <div key={key}>
-                                        {key === 'selectedOptions' 
+                                        {key === 'Opções' 
                                             ? `Opções: ${value.map(id => getOptionName(id)).join(', ')}`
                                             : `${key}: ${value}`
                                         }

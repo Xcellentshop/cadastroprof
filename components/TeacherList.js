@@ -1,4 +1,4 @@
-function TeacherList({ teachers }) {
+function TeacherList({ teachers, systemConfig }) {
     const [editingTeacher, setEditingTeacher] = React.useState(null);
 
     const handleEdit = (teacher) => {
@@ -13,17 +13,26 @@ function TeacherList({ teachers }) {
         setEditingTeacher(null);
     };
 
+    const getOptionName = (optionId) => {
+        const option = systemConfig.options.find(opt => opt.id === optionId);
+        return option ? option.name : '';
+    };
+
     if (editingTeacher) {
-        return <TeacherEdit 
-            teacher={editingTeacher}
-            onSave={handleSave}
-            onCancel={handleCancel}
-        />;
+        return (
+            <TeacherEdit 
+                teacher={editingTeacher}
+                systemConfig={systemConfig}
+                onSave={handleSave}
+                onCancel={handleCancel}
+            />
+        );
     }
 
     return (
         <div className="teacher-list" data-name="teacher-list">
-            <table className="teacher-table">
+            <h3 className="text-xl font-bold mb-4">Lista de Professores</h3>
+            <table className="teacher-table w-full">
                 <thead>
                     <tr>
                         <th>Nome</th>
@@ -40,14 +49,18 @@ function TeacherList({ teachers }) {
                             <td>{teacher.phone}</td>
                             <td>{formatDate(teacher.birthDate)}</td>
                             <td>
-                                {teacher.selectedOptions.map(optionId => 
-                                    getOptionName(optionId)
-                                ).join(', ')}
+                                <ul className="list-disc list-inside">
+                                    {teacher.selectedOptions.map(optionId => (
+                                        <li key={optionId}>
+                                            {getOptionName(optionId)}
+                                        </li>
+                                    ))}
+                                </ul>
                             </td>
                             <td>
                                 <button 
                                     onClick={() => handleEdit(teacher)}
-                                    className="edit-button"
+                                    className="edit-button bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
                                     data-name={`edit-teacher-${teacher.id}`}
                                 >
                                     Editar

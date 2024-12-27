@@ -1,4 +1,4 @@
-function TeacherLogin({ onLogin }) {
+function TeacherLogin({ onLogin, onBack }) {
     const [birthDate, setBirthDate] = React.useState('');
 
     const handleLogin = async (e) => {
@@ -23,6 +23,17 @@ function TeacherLogin({ onLogin }) {
 
     return (
         <div className="form-container" data-name="teacher-login">
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Acessar Meu Cadastro</h2>
+                <button 
+                    onClick={onBack}
+                    className="action-button bg-gray-500 hover:bg-gray-600"
+                    data-name="back-button"
+                >
+                    Voltar
+                </button>
+            </div>
+
             <form onSubmit={handleLogin}>
                 <div className="input-group" data-name="birthdate-group">
                     <label className="input-label">Data de Nascimento</label>

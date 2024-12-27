@@ -32,6 +32,11 @@ function App() {
         }
     };
 
+    const handleBack = () => {
+        setIsTeacherLogin(false);
+        setIsAdmin(false);
+    };
+
     const handleRegistrationSuccess = () => {
         try {
             setShowNotification(true);
@@ -51,14 +56,14 @@ function App() {
                     <div className="text-center mt-8">
                         <button
                             onClick={() => setIsTeacherLogin(true)}
-                            className="action-button mr-4"
+                            className="action-button bg-blue-500 hover:bg-blue-600 mr-4"
                             data-name="access-registration"
                         >
                             Acessar Meu Cadastro
                         </button>
                         <button
                             onClick={() => setIsAdmin(true)}
-                            className="action-button"
+                            className="action-button bg-green-500 hover:bg-green-600"
                             data-name="toggle-admin"
                         >
                             Área Administrativa
@@ -68,7 +73,10 @@ function App() {
             )}
             
             {isTeacherLogin && !currentTeacher && (
-                <TeacherLogin onLogin={handleTeacherLogin} />
+                <TeacherLogin 
+                    onLogin={handleTeacherLogin}
+                    onBack={handleBack}
+                />
             )}
 
             {currentTeacher && (
@@ -79,7 +87,10 @@ function App() {
             )}
             
             {isAdmin && !isAdminLoggedIn && (
-                <AdminLogin onLogin={handleAdminLogin} />
+                <AdminLogin 
+                    onLogin={handleAdminLogin}
+                    onBack={handleBack}
+                />
             )}
             
             {isAdmin && isAdminLoggedIn && (
