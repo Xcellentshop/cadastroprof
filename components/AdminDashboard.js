@@ -12,14 +12,14 @@ function AdminDashboard({ onLogout }) {
     const loadData = async () => {
         try {
             setLoading(true);
+            setError(null);
             
             // Load system config
             const config = await getSystemConfig();
             setSystemConfig(config);
 
             // Load teachers
-            const teachersRef = db.collection('teachers');
-            const snapshot = await teachersRef.get();
+            const snapshot = await db.collection('teachers').get();
             const teachersData = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
@@ -37,7 +37,7 @@ function AdminDashboard({ onLogout }) {
     const handleEditTeacher = async (updatedTeacher) => {
         try {
             await db.collection('teachers').doc(updatedTeacher.id).update(updatedTeacher);
-            loadData(); // Reload data after update
+            await loadData();
             alert('Professor atualizado com sucesso!');
         } catch (error) {
             console.error('Error updating teacher:', error);
@@ -49,7 +49,7 @@ function AdminDashboard({ onLogout }) {
         if (window.confirm('Tem certeza que deseja excluir este professor?')) {
             try {
                 await db.collection('teachers').doc(teacherId).delete();
-                loadData(); // Reload data after deletion
+                await loadData();
                 alert('Professor excluído com sucesso!');
             } catch (error) {
                 console.error('Error deleting teacher:', error);
@@ -124,66 +124,76 @@ function AdminDashboard({ onLogout }) {
         }
     };
 
-    const handleOptionsConfigClose = () => {
+    const handleConfigUpdate = () => {
         setShowOptionsConfig(false);
-        loadData(); // Reload config after changes
+        loadData();
     };
 
     if (loading) {
-        return <div className="loading">Carregando...</div>;
+        return (
+            <div className="admin-dashboard">
+                <div className="loading">Carregando...</div>
+            </div>
+        );
     }
 
     if (error) {
-        return <div className="error">{error}</div>;
+        return (
+            <div className="admin-dashboard">
+                <div className="error">{error}</div>
+                <button onClick={loadData} className="retry-button">
+                    Tentar Novamente
+                </button>
+            </div>
+        );
     }
 
     return (
         <div className="admin-dashboard">
             <div className="dashboard-header">
                 <h2>Painel Administrativo</h2>
-                <button onClick={generatePDF} className="generate-pdf-button">
-                    Gerar Relatório PDF
-                </button>
-                <button 
-                    onClick={() => setShowOptionsConfig(true)} 
-                    className="action-button bg-green-500 hover:bg-green-600"
-                    data-name="config-button"
-                >
-                    Configurar Opções
-                </button>
-                <button 
-                    onClick={onLogout} 
-                    className="action-button bg-gray-500 hover:bg-gray-600" 
-                    data-name="logout-button"
-                >
-                    Sair
-                </button>
+                <div className="dashboard-actions">
+                    <button onClick={generatePDF} className="generate-pdf-button">
+                        Gerar Relatório PDF
+                    </button>
+                    <button 
+                        onClick={() => setShowOptionsConfig(true)} 
+                        className="action-button config-button"
+                    >
+                        Configurar Opções
+                    </button>
+                    <button 
+                        onClick={onLogout} 
+                        className="action-button logout-button"
+                    >
+                        Sair
+                    </button>
+                </div>
             </div>
 
             <div className="dashboard-content">
-                <div className="config-section">
-                    <h3>Configurações do Sistema</h3>
-                    <AdminOptionsConfig 
-                        systemConfig={systemConfig} 
-                        onUpdate={() => loadData()}
-                    />
-                </div>
-
                 <div className="teachers-section">
                     <h3>Lista de Professores</h3>
-                    <TeacherList 
-                        teachers={teachers}
-                        systemConfig={systemConfig}
-                        onEdit={handleEditTeacher}
-                        onDelete={handleDeleteTeacher}
-                    />
+                    {teachers.length === 0 ? (
+                        <div className="no-data">Nenhum professor cadastrado.</div>
+                    ) : (
+                        <TeacherList 
+                            teachers={teachers}
+                            systemConfig={systemConfig}
+                            onEdit={handleEditTeacher}
+                            onDelete={handleDeleteTeacher}
+                        />
+                    )}
                 </div>
             </div>
 
             {showOptionsConfig && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <AdminOptionsConfig onClose={handleOptionsConfigClose} />
+                <div className="modal-overlay" onClick={() => setShowOptionsConfig(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <AdminOptionsConfig 
+                            systemConfig={systemConfig} 
+                            onUpdate={handleConfigUpdate}
+                        />
                     </div>
                 </div>
             )}
