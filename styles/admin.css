@@ -447,3 +447,143 @@ button.remove:hover {
         width: 100%;
     }
 }
+
+/* Registration Form Styles */
+.form-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #444;
+    font-weight: 500;
+}
+
+.input-field {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.option-item {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.option-header {
+    margin-bottom: 10px;
+}
+
+.checkbox-label,
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.checkbox-label:hover,
+.radio-label:hover {
+    background: #f1f3f5;
+}
+
+.sub-options-container {
+    margin-left: 25px;
+    margin-top: 8px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 4px;
+    border-left: 3px solid #007bff;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sub-option {
+    margin-left: 0;
+    padding-left: 8px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.submit-button {
+    width: 100%;
+    padding: 12px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+    background: #0056b3;
+}
+
+.submit-button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Animation for options and sub-options */
+.option-item {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.sub-options-container {
+    animation: slideDown 0.3s ease-in-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .form-container {
+        padding: 15px;
+    }
+
+    .input-field {
+        font-size: 14px;
+    }
+
+    .submit-button {
+        padding: 10px;
+        font-size: 14px;
+    }
+}

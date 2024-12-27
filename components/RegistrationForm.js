@@ -3,7 +3,8 @@ function RegistrationForm({ onSuccess }) {
         fullName: '',
         phone: '',
         birthDate: '',
-        selectedOptions: []
+        selectedOptions: [],
+        selectedSubOptions: {} 
     });
     const [systemConfig, setSystemConfig] = React.useState({ maxOptions: 2, options: [] });
     const [loading, setLoading] = React.useState(true);
@@ -57,25 +58,40 @@ function RegistrationForm({ onSuccess }) {
             setFormData(prev => {
                 const currentOptions = [...prev.selectedOptions];
                 const index = currentOptions.indexOf(optionId);
+                let newSelectedOptions;
+                let newSelectedSubOptions = { ...prev.selectedSubOptions };
 
                 if (index === -1) {
                     if (currentOptions.length < systemConfig.maxOptions) {
-                        currentOptions.push(optionId);
+                        newSelectedOptions = [...currentOptions, optionId];
                     } else {
                         alert(`Por favor, desmarque uma das opções para selecionar uma nova. Máximo permitido: ${systemConfig.maxOptions}`);
+                        return prev;
                     }
                 } else {
-                    currentOptions.splice(index, 1);
+                    newSelectedOptions = currentOptions.filter(id => id !== optionId);
+                    delete newSelectedSubOptions[optionId]; 
                 }
 
                 return {
                     ...prev,
-                    selectedOptions: currentOptions
+                    selectedOptions: newSelectedOptions,
+                    selectedSubOptions: newSelectedSubOptions
                 };
             });
         } catch (error) {
             reportError(error);
         }
+    };
+
+    const handleSubOptionSelect = (optionId, subOptionId) => {
+        setFormData(prev => ({
+            ...prev,
+            selectedSubOptions: {
+                ...prev.selectedSubOptions,
+                [optionId]: subOptionId 
+            }
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -92,6 +108,19 @@ function RegistrationForm({ onSuccess }) {
                 return;
             }
 
+            const invalidSelection = formData.selectedOptions.some(optionId => {
+                const option = systemConfig.options.find(o => o.id === optionId);
+                if (option?.subOptions?.length > 0) {
+                    return !formData.selectedSubOptions[optionId];
+                }
+                return false;
+            });
+
+            if (invalidSelection) {
+                alert('Por favor, selecione uma sub-opção para cada opção selecionada');
+                return;
+            }
+
             await db.collection('teachers').add({
                 ...formData,
                 phone: formatPhone(formData.phone),
@@ -103,7 +132,8 @@ function RegistrationForm({ onSuccess }) {
                 fullName: '',
                 phone: '',
                 birthDate: '',
-                selectedOptions: []
+                selectedOptions: [],
+                selectedSubOptions: {}
             });
         } catch (error) {
             reportError(error);
@@ -155,19 +185,36 @@ function RegistrationForm({ onSuccess }) {
                     />
                 </div>
 
-                <div className="options-grid" data-name="options-grid">
+                <div className="options-container" data-name="options-container">
                     {systemConfig.options.map(option => (
-                        <div
-                            key={option.id}
-                            className={`option-card ${
-                                formData.selectedOptions.includes(option.id) ? 'selected' : ''
-                            } ${
-                                formData.selectedOptions.length === systemConfig.maxOptions && !formData.selectedOptions.includes(option.id) ? 'disabled' : ''
-                            }`}
-                            onClick={() => handleOptionSelect(option.id)}
-                            data-name={`option-${option.id}`}
-                        >
-                            {option.name}
+                        <div key={option.id} className="option-item">
+                            <div className="option-header">
+                                <label className="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.selectedOptions.includes(option.id)}
+                                        onChange={() => handleOptionSelect(option.id)}
+                                        disabled={formData.selectedOptions.length >= systemConfig.maxOptions && !formData.selectedOptions.includes(option.id)}
+                                    />
+                                    {option.name}
+                                </label>
+                            </div>
+                            
+                            {formData.selectedOptions.includes(option.id) && option.subOptions?.length > 0 && (
+                                <div className="sub-options-container">
+                                    {option.subOptions.map(subOption => (
+                                        <label key={subOption.id} className="radio-label sub-option">
+                                            <input
+                                                type="radio"
+                                                name={`subOption-${option.id}`}
+                                                checked={formData.selectedSubOptions[option.id] === subOption.id}
+                                                onChange={() => handleSubOptionSelect(option.id, subOption.id)}
+                                            />
+                                            {subOption.name}
+                                        </label>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
