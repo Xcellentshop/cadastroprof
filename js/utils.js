@@ -41,14 +41,41 @@ async function getSystemConfig() {
         if (configDoc.exists) {
             return configDoc.data();
         }
-        // Default configuration
+        // Default configuration with hierarchical options
         return {
             maxOptions: 2,
             options: [
-                { id: 1, name: 'EBD (Domingo de Manhã)' },
-                { id: 2, name: 'EBQ (Quarta Feira)' },
-                { id: 3, name: 'CULTO KIDS (Domingo a Noite)' },
-                { id: 4, name: 'EBQ (Quinta Feira)' }
+                {
+                    id: 1,
+                    name: 'EBD (Domingo de Manhã)',
+                    subOptions: [
+                        { id: 11, name: 'JARDIM' },
+                        { id: 12, name: 'JUNIORES' }
+                    ]
+                },
+                {
+                    id: 2,
+                    name: 'EBQ (Quarta Feira)',
+                    subOptions: [
+                        { id: 21, name: 'JARDIM' },
+                        { id: 22, name: 'JUNIORES' }
+                    ]
+                },
+                {
+                    id: 3,
+                    name: 'CULTO KIDS (Domingo à Noite)',
+                    subOptions: [
+                        { id: 31, name: 'MATERNAL' },
+                        { id: 32, name: 'JARDIM' },
+                        { id: 33, name: 'PRIMÁRIOS' },
+                        { id: 34, name: 'JUNIORES' }
+                    ]
+                },
+                {
+                    id: 4,
+                    name: 'EBQ (Quinta Feira)',
+                    subOptions: []
+                }
             ]
         };
     } catch (error) {

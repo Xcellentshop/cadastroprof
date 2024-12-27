@@ -3,7 +3,8 @@ function TeacherEdit({ teacher, systemConfig, onSave, onCancel }) {
         fullName: teacher.fullName,
         phone: teacher.phone.replace(/\D/g, ''),
         birthDate: teacher.birthDate,
-        selectedOptions: teacher.selectedOptions || []
+        selectedOptions: teacher.selectedOptions || [],
+        selectedSubOptions: teacher.selectedSubOptions || {}
     });
 
     const handleInputChange = (e) => {
@@ -29,30 +30,47 @@ function TeacherEdit({ teacher, systemConfig, onSave, onCancel }) {
     };
 
     const handleOptionSelect = (optionId) => {
-        try {
-            setFormData(prev => {
-                const currentOptions = [...prev.selectedOptions];
-                const index = currentOptions.indexOf(optionId);
+        setFormData(prev => {
+            const isSelected = prev.selectedOptions.includes(optionId);
+            let newSelectedOptions;
+            let newSelectedSubOptions = { ...prev.selectedSubOptions };
 
-                if (index === -1) {
-                    if (currentOptions.length < systemConfig.maxOptions) {
-                        currentOptions.push(optionId);
-                    } else {
-                        alert(`Por favor, desmarque uma das opções para selecionar uma nova. Máximo permitido: ${systemConfig.maxOptions}`);
-                        return prev;
-                    }
-                } else {
-                    currentOptions.splice(index, 1);
+            if (isSelected) {
+                // Remove option and its sub-options
+                newSelectedOptions = prev.selectedOptions.filter(id => id !== optionId);
+                delete newSelectedSubOptions[optionId];
+            } else {
+                // Add option if within limit
+                if (prev.selectedOptions.length >= systemConfig.maxOptions) {
+                    alert(`Você pode selecionar no máximo ${systemConfig.maxOptions} opção(ões)`);
+                    return prev;
                 }
+                newSelectedOptions = [...prev.selectedOptions, optionId];
+            }
 
-                return {
-                    ...prev,
-                    selectedOptions: currentOptions
-                };
-            });
-        } catch (error) {
-            reportError(error);
-        }
+            return {
+                ...prev,
+                selectedOptions: newSelectedOptions,
+                selectedSubOptions: newSelectedSubOptions
+            };
+        });
+    };
+
+    const handleSubOptionSelect = (optionId, subOptionId) => {
+        setFormData(prev => {
+            const currentSubOptions = prev.selectedSubOptions[optionId] || [];
+            const isSelected = currentSubOptions.includes(subOptionId);
+
+            return {
+                ...prev,
+                selectedSubOptions: {
+                    ...prev.selectedSubOptions,
+                    [optionId]: isSelected
+                        ? currentSubOptions.filter(id => id !== subOptionId)
+                        : [...currentSubOptions, subOptionId]
+                }
+            };
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -66,6 +84,21 @@ function TeacherEdit({ teacher, systemConfig, onSave, onCancel }) {
 
             if (formData.phone.length !== 11) {
                 alert('Por favor, insira um número de telefone válido com DDD (11 dígitos)');
+                return;
+            }
+
+            // Validate that each selected option has at least one sub-option selected (if available)
+            const invalidSelection = formData.selectedOptions.some(optionId => {
+                const option = systemConfig.options.find(o => o.id === optionId);
+                if (option.subOptions.length > 0) {
+                    const selectedSubOptions = formData.selectedSubOptions[optionId] || [];
+                    return selectedSubOptions.length === 0;
+                }
+                return false;
+            });
+
+            if (invalidSelection) {
+                alert('Por favor, selecione pelo menos uma sub-opção para cada opção selecionada');
                 return;
             }
 
@@ -145,6 +178,20 @@ function TeacherEdit({ teacher, systemConfig, onSave, onCancel }) {
                                 data-name={`option-${option.id}`}
                             >
                                 {option.name}
+                                {formData.selectedOptions.includes(option.id) && option.subOptions.length > 0 && (
+                                    <div className="sub-options-container">
+                                        {option.subOptions.map(subOption => (
+                                            <label key={subOption.id} className="checkbox-label sub-option">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={(formData.selectedSubOptions[option.id] || []).includes(subOption.id)}
+                                                    onChange={() => handleSubOptionSelect(option.id, subOption.id)}
+                                                />
+                                                {subOption.name}
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
