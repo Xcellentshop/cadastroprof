@@ -1,4 +1,4 @@
-function TeacherList({ teachers, systemConfig }) {
+function TeacherList({ teachers, systemConfig, onEdit, onDelete }) {
     const [editingTeacher, setEditingTeacher] = React.useState(null);
 
     const handleEdit = (teacher) => {
@@ -16,6 +16,26 @@ function TeacherList({ teachers, systemConfig }) {
     const getOptionName = (optionId) => {
         const option = systemConfig.options.find(opt => opt.id === optionId);
         return option ? option.name : '';
+    };
+
+    const renderTeacherOptions = (teacher) => {
+        return teacher.selectedOptions?.map(optionId => {
+            const option = systemConfig.options.find(o => o.id === optionId);
+            const subOption = option?.subOptions?.find(
+                sub => teacher.selectedSubOptions[optionId] === sub.id
+            );
+            
+            return option ? (
+                <div key={optionId} className="teacher-option">
+                    <span className="option-name">{option.name}</span>
+                    {subOption && (
+                        <span className="sub-option-name">
+                            → {subOption.name}
+                        </span>
+                    )}
+                </div>
+            ) : null;
+        });
     };
 
     if (editingTeacher) {
@@ -50,11 +70,7 @@ function TeacherList({ teachers, systemConfig }) {
                             <td>{formatDate(teacher.birthDate)}</td>
                             <td>
                                 <ul className="list-disc list-inside">
-                                    {teacher.selectedOptions.map(optionId => (
-                                        <li key={optionId}>
-                                            {getOptionName(optionId)}
-                                        </li>
-                                    ))}
+                                    {renderTeacherOptions(teacher)}
                                 </ul>
                             </td>
                             <td>

@@ -124,6 +124,33 @@ function TeacherDashboard({ teacher, onLogout }) {
         }
     };
 
+    const renderOptions = () => {
+        return (
+            <div className="teacher-options">
+                <h3>Suas Opções Selecionadas:</h3>
+                <div className="options-list">
+                    {formData.selectedOptions?.map(optionId => {
+                        const option = systemConfig.options.find(o => o.id === optionId);
+                        const subOption = option?.subOptions?.find(
+                            sub => formData.selectedSubOptions[optionId] === sub.id
+                        );
+                        
+                        return option ? (
+                            <div key={option.id} className="option-item">
+                                <div className="option-name">{option.name}</div>
+                                {subOption && (
+                                    <div className="sub-option-name">
+                                        → {subOption.name}
+                                    </div>
+                                )}
+                            </div>
+                        ) : null;
+                    })}
+                </div>
+            </div>
+        );
+    };
+
     if (!systemConfig) {
         return <div>Carregando...</div>;
     }
@@ -201,6 +228,8 @@ function TeacherDashboard({ teacher, onLogout }) {
                     Atualizar Dados
                 </button>
             </form>
+
+            {renderOptions()}
 
             <div className="history-log mt-6" data-name="history-log">
                 <h3 className="font-bold mb-2">Histórico de Alterações</h3>
